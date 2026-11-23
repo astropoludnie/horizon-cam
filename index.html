@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="./manifest.json" />
+  <title>Horizon Cam — Offline TXT</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #141619;
+      color: #e6e8eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      padding: 10px 14px;
+      background: #1d2024;
+      border-bottom: 1px solid #2e333a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .cam-box {
+      position: relative;
+      width: 100%;
+      height: 50vh;
+      min-height: 250px;
+      background: #000;
+      overflow: hidden;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .crosshair {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 36px;
+      height: 36px;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffcc00;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+    }
+    .crosshair::before,
+    .crosshair::after {
+      content: "";
+      position: absolute;
+      background: #ffcc00;
+    }
+    .crosshair::before {
+      left: 50%;
+      top: -8px;
+      width: 2px;
+      height: 52px;
+      transform: translateX(-50%);
+    }
+    .crosshair::after {
+      top: 50%;
+      left: -8px;
+      height: 2px;
+      width: 52px;
+      transform: translateY(-50%);
+    }
+    .hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 17, 20, 0.82);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .debug-line {
+      font-size: 11px;
+      color: #a8b0ba;
+      margin-top: 4px;
+    }
+    .controls {
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    button, select {
+      padding: 11px 12px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #3c424b;
+      background: #282c32;
+      color: #f1f3f5;
+      font-weight: 500;
+    }
+    button.primary {
+      background: #2f6fed;
+      border-color: #2f6fed;
+      color: #fff;
+    }
+    button.accent {
+      background: #1f7a4c;
+      border-color: #1f7a4c;
+      color: #fff;
+    }
+    .preview-wrap {
+      padding: 0 12px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #9aa0a6;
+    }
+    pre {
+      margin: 0;
+      padding: 10px;
+      background: #0d0f12;
+      border: 1px solid #2b3038;
+      border-radius: 8px;
+      color: #d0d5dd;
+      font-size: 13px;
+      min-height: 110px;
+      max-height: 210px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Horizon Cam</strong>
+    <span id="offlineStatus">Sprawdzanie offline...</span>
+    <span id="magBadge">MagDec: 0.0°</span>
+  </header>
+
+  <div class="cam-box">
+    <video id="cam" autoplay playsinline muted></video>
+    <div class="crosshair"></div>
+    <div class="hud" id="hud">
+      Az: --.-° | Alt: --.-° | Punktów: 0
+      <div class="debug-line" id="debug">Sensory: brak odczytów (0)</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="btnStart">Start kamery i czujników</button>
+    <select id="holdMode" aria-label="Tryb trzymania telefonu">
+      <option value="landscape">Tryb: Poziom (celownik)</option>
+      <option value="portrait">Tryb: Pion</option>
+    </select>
+    <button class="accent" id="btnCapture">Zapisz punkt</button>
+    <button id="btnUndo">Cofnij ostatni</button>
+    <button id="btnDownload">Pobierz horizon.txt</button>
+    <button id="btnCopy">Kopiuj TXT</button>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-header">
+      <span>Podgląd eksportu (autozapis offline):</span>
+      <a href="#" id="btnClearAll" style="color: #ff6b6b; text-decoration: none;">Wyczyść listę</a>
+    </div>
+    <pre id="output"># Az El</pre>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "horizon_cam_points_v1";
+    const params = new URLSearchParams(location.search);
+    const magDec = parseFloat(params.get("magdec") || "0");
+    const validMagDec = Number.isFinite(magDec) ? magDec : 0;
+    document.getElementById("magBadge").textContent = `MagDec: ${validMagDec.toFixed(1)}°`;
+
+    const videoEl = document.getElementById("cam");
+    const hudEl = document.getElementById("hud");
+    const debugEl = document.getElementById("debug");
+    const outputEl = document.getElementById("output");
+    const holdModeEl = document.getElementById("holdMode");
+    const offlineStatusEl = document.getElementById("offlineStatus");
+
+    let currentAz = 0;
+    let currentAlt = 0;
+    let sensorEvents = 0;
+    let lastRaw = "-";
+    let points = [];
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (Array.isArray(saved)) points = saved;
+    } catch {
+      points = [];
+    }
+
+    function savePoints() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
+      } catch {}
+    }
+
+    function formatTxt() {
+      const rows = ["# Az El"];
+      for (const p of points) {
+        rows.push(`${p.az.toFixed(2)} ${p.alt.toFixed(2)}`);
+      }
+      return rows.join("\n") + "\n";
+    }
+
+    function refreshView() {
+      hudEl.firstChild.textContent =
+        `Az: ${currentAz.toFixed(1)}° | Alt: ${currentAlt.toFixed(1)}° | Punktów: ${points.length}`;
+      debugEl.textContent = `Odczyty: ${sensorEvents} | ${lastRaw}`;
+      outputEl.textContent = formatTxt().trimEnd();
+    }
+
+    function computeAlt(beta, gamma) {
+      if (typeof beta !== "number" && typeof gamma !== "number") {
+        return currentAlt;
+      }
+      const b = typeof beta === "number" ? beta : 0;
+      const g = typeof gamma === "number" ? gamma : 0;
+      let alt = holdModeEl.value === "landscape" ? (90 - Math.abs(g)) : (b - 90);
+      return Math.max(-90, Math.min(90, alt));
+    }
+
+    function onDeviceOrientation(event) {
+      sensorEvents += 1;
+
+      let heading = null;
+      if (typeof event.webkitCompassHeading === "number" && Number.isFinite(event.webkitCompassHeading)) {
+        heading = event.webkitCompassHeading;
+      } else if (typeof event.alpha === "number" && Number.isFinite(event.alpha)) {
+        heading = (360 - event.alpha) % 360;
+      }
+
+      if (heading !== null) {
+        currentAz = (((heading + validMagDec) % 360) + 360) % 360;
+      }
+
+      currentAlt = computeAlt(event.beta, event.gamma);
+
+      const a = typeof event.alpha === "number" ? event.alpha.toFixed(0) : "null";
+      const b = typeof event.beta === "number" ? event.beta.toFixed(0) : "null";
+      const g = typeof event.gamma === "number" ? event.gamma.toFixed(0) : "null";
+      const w = typeof event.webkitCompassHeading === "number" ? event.webkitCompassHeading.toFixed(0) : "null";
+      lastRaw = `a:${a} b:${b} g:${g} w:${w}`;
+
+      refreshView();
+    }
+
+    document.getElementById("btnStart").addEventListener("click", async () => {
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        try {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== "granted") {
+            alert("Brak zgody na odczyt czujników orientacji.");
+            return;
+          }
+        } catch (err) {
+          alert("Błąd uprawnień czujników: " + err.message);
+          return;
+        }
+      }
+
+      window.removeEventListener("deviceorientation", onDeviceOrientation, true);
+      window.removeEventListener("deviceorientationabsolute", onDeviceOrientation, true);
+      window.addEventListener("deviceorientation", onDeviceOrientation, true);
+      window.addEventListener("deviceorientationabsolute", onDeviceOrientation, true);
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        videoEl.srcObject = stream;
+      } catch (err) {
+        alert("Nie udało się uruchomić kamery: " + err.message);
+      }
+    });
+
+    document.getElementById("btnCapture").addEventListener("click", () => {
+      points.push({
+        az: Number(currentAz.toFixed(2)),
+        alt: Number(currentAlt.toFixed(2))
+      });
+      savePoints();
+      refreshView();
+    });
+
+    document.getElementById("btnUndo").addEventListener("click", () => {
+      points.pop();
+      savePoints();
+      refreshView();
+    });
+
+    document.getElementById("btnClearAll").addEventListener("click", (e) => {
+      e.preventDefault();
+      if (confirm("Usunąć wszystkie zapisane punkty?")) {
+        points = [];
+        savePoints();
+        refreshView();
+      }
+    });
+
+    document.getElementById("btnDownload").addEventListener("click", () => {
+      const blob = new Blob([formatTxt()], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "horizon.txt";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("btnCopy").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(formatTxt());
+        alert("Skopiowano profil TXT do schowka.");
+      } catch {
+        alert("Nie udało się automatycznie skopiować — zaznacz tekst na dole.");
+      }
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js")
+        .then(() => {
+          offlineStatusEl.textContent = "Gotowe offline";
+          offlineStatusEl.style.color = "#4ade80";
+        })
+        .catch(() => {
+          offlineStatusEl.textContent = "Tylko online";
+        });
+    } else {
+      offlineStatusEl.textContent = "Brak SW";
+    }
+
+    refreshView();
+  </script>
+</body>
+</html>
