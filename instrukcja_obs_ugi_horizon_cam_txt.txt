@@ -1,0 +1,127 @@
+====================================================================
+HORIZON CAM — INSTRUKCJA OBSŁUGI (WERSJA WEB / OFFLINE PWA)
+====================================================================
+
+1. DO CZEGO SŁUŻY APLIKACJA
+--------------------------------------------------------------------
+Horizon Cam to lekka aplikacja webowa uruchamiana w przeglądarce
+telefonu (iPhone / Android), która wykorzystuje tylny aparat oraz
+czujniki orientacji urządzenia (kompas i żyroskop/akcelerometr)
+do wyznaczania linii lokalnego horyzontu (Azymut i Wysokość)
+i zapisywania jej do pliku tekstowego horizon.txt.
+
+Wygenerowany plik horizon.txt jest gotowy do bezpośredniego
+wczytania w desktopowej aplikacji edytora horyzontu (macOS)
+oraz w programach astronomicznych (np. Stellarium, SkySafari, NINA).
+
+
+2. PIERWSZE URUCHOMIENIE I UPRAWNIENIA (IPHONE / ANDROID)
+--------------------------------------------------------------------
+1) Otwórz w przeglądarce (na iPhonie najlepiej w Safari, na
+   Androidzie w Chrome) adres strony opublikowanej na GitHub Pages:
+   https://astropoludnie.github.io/horizon-cam/
+
+   Opcjonalnie możesz dodać w adresie korektę deklinacji
+   magnetycznej dla swojej lokalizacji (w stopniach), np.:
+   https://astropoludnie.github.io/horizon-cam/?magdec=5.5
+
+2) Stuknij niebieski przycisk: "Start kamery i czujników".
+3) Zaakceptuj monity systemowe przeglądarki:
+   - Zezwól na dostęp do czujników ruchu i orientacji.
+   - Zezwól na dostęp do lokalizacji (na iOS Safari wymaga tej zgody
+     do prawidłowego działania kompasu i orientacji).
+   - Zezwól na dostęp do kamery.
+4) W lewym górnym rogu podglądu kamery powinny pojawić się aktualne
+   wskazania: Az (azymut 0-360°), Alt (wysokość -90° do +90°)
+   oraz licznik odczytów z czujników.
+
+
+3. JAK ZAPISAĆ APLIKACJĘ NA TELEFONIE I UŻYWAĆ JEJ OFFLINE
+--------------------------------------------------------------------
+Aplikacja działa jako PWA (Progressive Web App) i zapisuje swoje
+pliki w pamięci podręcznej telefonu.
+
+Krok A — Pobranie wersji offline (wymaga internetu tylko raz):
+1) Otwórz stronę w Safari (iPhone) lub Chrome (Android) przy
+   włączonym internecie.
+2) Odczekaj 2–3 sekundy, aż na górnym pasku aplikacji pojawi się
+   zielony komunikat: "Gotowe offline".
+
+Krok B — Dodanie ikony na ekran główny telefonu:
+- Na iPhonie (Safari):
+  1) Stuknij ikonę "Udostępnij" (kwadrat ze strzałką w górę) na
+     dolnym pasku przeglądarki.
+  2) Przewiń menu i wybierz: "Do ekranu początkowego"
+     (Add to Home Screen).
+  3) Zatwierdź przyciskiem "Dodaj".
+
+- Na Androidzie (Chrome):
+  1) Stuknij ikonę menu (trzy kropki w prawym górnym rogu).
+  2) Wybierz: "Dodaj do ekranu głównego" lub "Zainstaluj aplikację".
+  3) Zatwierdź dodanie skrótu.
+
+Krok C — Praca w terenie bez dostępu do sieci (Offline):
+1) Na ekranie głównym telefonu uruchom ikonę "Horizon Cam".
+2) Aplikacja uruchomi się całkowicie z pamięci telefonu — nawet
+   w trybie samolotowym lub w miejscu bez zasięgu sieci komórkowej.
+3) Wszystkie zapisywane punkty są na bieżąco archiwizowane w pamięci
+   lokalnej urządzenia (localStorage), więc nie zginą nawet po
+   zamknięciu aplikacji.
+
+
+4. POMIAR HORYZONTU W TERENIE KROK PO KROKU
+--------------------------------------------------------------------
+1) Przed rozpoczęciem pomiarów wykonaj telefonem kilka płynnych
+   ruchów w kształcie ósemki w powietrzu, aby skalibrować kompas.
+   Unikaj trzymania telefonu tuż przy metalowych elementach lub
+   etui z silnym magnesem.
+2) Ustaw telefon w miejscu przyszłego montażu teleskopu.
+3) Wybierz sposób trzymania telefonu na liście obok przycisku Start:
+   - "Tryb: Poziom (celownik)" — gdy trzymasz telefon poziomo.
+   - "Tryb: Pion" — gdy celujesz telefonem trzymanym pionowo.
+   (Przed serią pomiarów porównaj wskazanie Alt = 0° na płaskim
+   horyzoncie, aby upewnić się, że wybrany tryb odpowiada sposobowi
+   trzymania telefonu).
+4) Nakieruj żółty celownik na środku ekranu na najwyższy punkt
+   przeszkody (drzewo, budynek, wzniesienie) w danym kierunku.
+5) Stuknij zielony przycisk: "Zapisz punkt".
+6) Obracaj się stopniowo wokół własnej osi (co 5°–15° lub w punktach
+   załamania linii horyzontu) i zapisuj kolejne punkty dla pełnego
+   okręgu 0°–360°.
+7) Jeśli pomylisz się przy ostatnim punkcie, użyj przycisku
+   "Cofnij ostatni". Aby wyczyścić całą listę przed nowym pomiarem,
+   kliknij "Wyczyść listę" nad podglądem tekstowym.
+
+
+5. EKSPORT PLIKU HORIZON.TXT I PRZENIESIENIE NA KOMPUTER
+--------------------------------------------------------------------
+Masz dwie metody pobrania gotowych danych:
+- "Pobierz horizon.txt": zapisuje plik tekstowy bezpośrednio w
+  folderze Pobrane (Downloads / Pliki) w pamięci telefonu.
+- "Kopiuj TXT": kopiuje całą zawartość profilu do schowka, dzięki
+  czemu możesz ją od razu wkleić do notatki, wiadomości e-mail lub
+  komunikatora.
+
+Format zapisanego pliku:
+# Az El
+0.00 12.40
+15.50 14.10
+30.00 8.50
+...
+
+Przeniesienie na komputer Mac:
+- Na iPhonie możesz otworzyć pobrany plik w aplikacji "Pliki"
+  i przesłać go na Maca przez AirDrop (lub iCloud Drive / e-mail).
+- Następnie uruchom swoją aplikację edytora horyzontu na macOS
+  i wczytaj plik horizon.txt w celu dalszej edycji oraz eksportu
+  do Stellarium lub SkySafari.
+
+
+6. AKTUALIZACJA APLIKACJI W PRZYSZŁOŚCI
+--------------------------------------------------------------------
+Jeśli na GitHubie zostanie opublikowana nowsza wersja aplikacji:
+1) Połącz telefon z internetem.
+2) Otwórz adres strony w Safari / Chrome i odśwież stronę.
+3) Po pojawieniu się statusu "Gotowe offline" nowa wersja zostanie
+   zapisana w pamięci podręcznej telefonu.
+====================================================================
