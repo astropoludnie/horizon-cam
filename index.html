@@ -76,12 +76,17 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(15, 17, 20, 0.78);
+      background: rgba(15, 17, 20, 0.82);
       padding: 8px 12px;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.4;
       border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .debug-line {
+      font-size: 11px;
+      color: #a8b0ba;
+      margin-top: 4px;
     }
     .controls {
       padding: 10px 12px;
@@ -147,8 +152,8 @@
     <video id="cam" autoplay playsinline muted></video>
     <div class="crosshair"></div>
     <div class="hud" id="hud">
-      Az: --.-° | Alt: --.-°<br />
-      Punktów: 0
+      Az: --.-° | Alt: --.-° | Punktów: 0
+      <div class="debug-line" id="debug">Sensory: brak odczytów (0)</div>
     </div>
   </div>
 
@@ -181,12 +186,15 @@
 
     const videoEl = document.getElementById("cam");
     const hudEl = document.getElementById("hud");
+    const debugEl = document.getElementById("debug");
     const outputEl = document.getElementById("output");
     const holdModeEl = document.getElementById("holdMode");
     const offlineStatusEl = document.getElementById("offlineStatus");
 
     let currentAz = 0;
     let currentAlt = 0;
+    let sensorEvents = 0;
+    let lastRaw = "-";
     let points = [];
 
     try {
@@ -211,20 +219,25 @@
     }
 
     function refreshView() {
-      hudEl.innerHTML =
-        `Az: ${currentAz.toFixed(1)}° | Alt: ${currentAlt.toFixed(1)}°<br />` +
-        `Punktów: ${points.length}`;
+      hudEl.firstChild.textContent =
+        `Az: ${currentAz.toFixed(1)}° | Alt: ${currentAlt.toFixed(1)}° | Punktów: ${points.length}`;
+      debugEl.textContent = `Odczyty: ${sensorEvents} | ${lastRaw}`;
       outputEl.textContent = formatTxt().trimEnd();
     }
 
     function computeAlt(beta, gamma) {
-      const b = beta ?? 0;
-      const g = gamma ?? 0;
+      if (typeof beta !== "number" && typeof gamma !== "number") {
+        return currentAlt;
+      }
+      const b = typeof beta === "number" ? beta : 0;
+      const g = typeof gamma === "number" ? gamma : 0;
       let alt = holdModeEl.value === "landscape" ? (90 - Math.abs(g)) : (b - 90);
       return Math.max(-90, Math.min(90, alt));
     }
 
     function onDeviceOrientation(event) {
+      sensorEvents += 1;
+
       let heading = null;
       if (typeof event.webkitCompassHeading === "number" && Number.isFinite(event.webkitCompassHeading)) {
         heading = event.webkitCompassHeading;
@@ -237,6 +250,13 @@
       }
 
       currentAlt = computeAlt(event.beta, event.gamma);
+
+      const a = typeof event.alpha === "number" ? event.alpha.toFixed(0) : "null";
+      const b = typeof event.beta === "number" ? event.beta.toFixed(0) : "null";
+      const g = typeof event.gamma === "number" ? event.gamma.toFixed(0) : "null";
+      const w = typeof event.webkitCompassHeading === "number" ? event.webkitCompassHeading.toFixed(0) : "null";
+      lastRaw = `a:${a} b:${b} g:${g} w:${w}`;
+
       refreshView();
     }
 
@@ -268,7 +288,9 @@
       }
 
       window.removeEventListener("deviceorientation", onDeviceOrientation, true);
+      window.removeEventListener("deviceorientationabsolute", onDeviceOrientation, true);
       window.addEventListener("deviceorientation", onDeviceOrientation, true);
+      window.addEventListener("deviceorientationabsolute", onDeviceOrientation, true);
     });
 
     document.getElementById("btnCapture").addEventListener("click", () => {
