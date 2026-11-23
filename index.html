@@ -261,16 +261,6 @@
     }
 
     document.getElementById("btnStart").addEventListener("click", async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false
-        });
-        videoEl.srcObject = stream;
-      } catch (err) {
-        alert("Nie udało się uruchomić kamery: " + err.message);
-      }
-
       if (
         typeof DeviceOrientationEvent !== "undefined" &&
         typeof DeviceOrientationEvent.requestPermission === "function"
@@ -291,6 +281,16 @@
       window.removeEventListener("deviceorientationabsolute", onDeviceOrientation, true);
       window.addEventListener("deviceorientation", onDeviceOrientation, true);
       window.addEventListener("deviceorientationabsolute", onDeviceOrientation, true);
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        videoEl.srcObject = stream;
+      } catch (err) {
+        alert("Nie udało się uruchomić kamery: " + err.message);
+      }
     });
 
     document.getElementById("btnCapture").addEventListener("click", () => {
